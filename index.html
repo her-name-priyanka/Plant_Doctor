@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Doctor - Disease Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0fdf4;
+        }
+        
+        .disease-card {
+            transition: all 0.3s ease;
+        }
+        
+        .disease-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .image-preview-container {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .image-preview-container:hover .image-overlay {
+            opacity: 1;
+        }
+        
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .upload-area {
+            border: 2px dashed #bbf7d0;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #4ade80;
+            background-color: #f0fdf4;
+        }
+        
+        .upload-area.dragover {
+            border-color: #22c55e;
+            background-color: #dcfce7;
+        }
+        
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-green-800 mb-2">Plant Doctor</h1>
+            <p class="text-lg text-green-600">Upload a photo of your plant to detect diseases</p>
+        </header>
+        
+        <main>
+            <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden p-6 mb-8">
+                <div id="upload-section" class="text-center">
+                    <div id="upload-area" class="upload-area rounded-lg p-8 cursor-pointer mb-4">
+                        <div class="mx-auto max-w-sm">
+                            <img src="https://placehold.co/100x100" alt="Leaf icon with upload symbol in green color" class="mx-auto mb-4" />
+                            <h2 class="text-xl font-semibold text-gray-800 mb-2">Upload Plant Photo</h2>
+                            <p class="text-gray-600 mb-4">Drag & drop your image here, or click to browse</p>
+                            <input type="file" id="plant-image" accept="image/*" class="hidden">
+                            <button id="upload-btn" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-6 rounded-full transition">Select Image</button>
+                        </div>
+                    </div>
+                    
+                    <div class="px-4">
+                        <div id="progress-container" class="hidden mb-4">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm font-medium text-green-700">Analyzing image...</span>
+                                <span id="progress-percent" class="text-sm font-medium text-green-700">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div id="progress-bar" class="progress-bar bg-green-600 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="results-section" class="hidden">
+                    <div class="flex flex-col md:flex-row gap-6 mb-8">
+                        <div class="w-full md:w-1/2">
+                            <div id="image-preview-container" class="image-preview-container rounded-lg overflow-hidden shadow-md bg-gray-100">
+                                <img id="image-preview" src="" alt="Preview of uploaded plant image" class="w-full h-auto object-cover" />
+                                <div class="image-overlay">
+                                    <button id="change-image-btn" class="bg-white text-green-600 font-medium py-2 px-4 rounded-full">Change Image</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="w-full md:w-1/2">
+                            <div class="bg-white border border-green-200 rounded-lg p-6 shadow-sm">
+                                <h3 class="text-xl font-semibold text-green-800 mb-4">Detection Results</h3>
+                                
+                                <div id="healthy-result" class="hidden">
+                                    <div class="flex items-center mb-4">
+                                        <img src="https://placehold.co/50x50" alt="Green checkmark icon" class="mr-3" />
+                                        <span class="text-lg font-medium text-green-600">Your plant appears healthy!</span>
+                                    </div>
+                                    <p class="text-gray-600">No signs of disease detected in your plant. Continue with your current care routine.</p>
+                                </div>
+                                
+                                <div id="disease-result" class="hidden">
+                                    <div class="mb-4">
+                                        <span class="text-lg font-medium text-red-600">Detected Disease:</span>
+                                        <h4 id="disease-name" class="text-xl font-bold text-gray-800 mt-1"></h4>
+                                    </div>
+                                    <div>
+                                        <span class="text-lg font-medium text-green-600">Confidence:</span>
+                                        <p id="confidence-level" class="text-gray-600"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="treatment-section" class="hidden">
+                        <h3 class="text-2xl font-bold text-green-800 mb-6 text-center">Recommended Treatment</h3>
+                        
+                        <div id="treatment-content" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                            <!-- Treatment cards will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="disease-library" class="max-w-5xl mx-auto hidden">
+                <h2 class="text-2xl font-bold text-green-800 mb-6 text-center">Common Plant Diseases</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Disease cards will be inserted here -->
+                </div>
+            </div>
+        </main>
+        
+        <footer class="text-center mt-16 mb-8 text-gray-600">
+            <p>Plant Doctor - Helping you keep your plants healthy</p>
+        </footer>
+    </div>
+
+    <script>
+        // Disease database
+        const diseaseDatabase = {
+            "Early Blight": {
+                description: "A fungal disease that causes dark spots with concentric rings on leaves.",
+                confidence: "85%",
+                treatments: [
+                    {
+                        title: "Remove Affected Leaves",
+                        description: "Prune and destroy infected leaves to prevent spread.",
+                        icon: "✂️"
+                    },
+                    {
+                        title: "Apply Fungicide",
+                        description: "Use a copper-based fungicide spray every 7-10 days.",
+                        icon: "💦"
+                    },
+                    {
+                        title: "Improve Air Circulation",
+                        description: "Space plants properly to reduce humidity around leaves.",
+                        icon: "🌬️"
+                    },
+                    {
+                        title: "Water at Base",
+                        description: "Avoid overhead watering to keep leaves dry.",
+                        icon: "💧"
+                    }
+                ],
+                examples: [
+                    "https://placehold.co/400x300?text=Early+Blight+Tomato+Leaf",
+                    "https://placehold.co/400x300?text=Early+Blight+Potato+Plant"
+                ]
+            },
+            "Powdery Mildew": {
+                description: "White powdery spots develop on leaves and stems.",
+                confidence: "92%",
+                treatments: [
+                    {
+                        title: "Baking Soda Spray",
+                        description: "Mix 1 tbsp baking soda with 1 gallon water and spray on affected areas.",
+                        icon: "🧂"
+                    },
+                    {
+                        title: "Milk Spray",
+                        description: "Mix 1 part milk with 2-3 parts water and spray weekly.",
+                        icon: "🥛"
+                    },
+                    {
+                        title: "Neem Oil",
+                        description: "Apply neem oil solution every 7-14 days as preventative.",
+                        icon: "🌿"
+                    },
+                    {
+                        title: "Increase Sunlight",
+                        description: "Move plant to sunnier location if possible.",
+                        icon: "☀️"
+                    }
+                ],
+                examples: [
+                    "https://placehold.co/400x300?text=Powdery+Mildew+on+Cucumber",
+                    "https://placehold.co/400x300?text=Powdery+Mildew+on+Roses"
+                ]
+            },
+            "Root Rot": {
+                description: "Caused by overwatering, leads to brown, mushy roots and wilted leaves.",
+                confidence: "78%",
+                treatments: [
+                    {
+                        title: "Repot Plant",
+                        description: "Remove plant, trim black roots, and repot in fresh soil.",
+                        icon: "🪴"
+                    },
+                    {
+                        title: "Improve Drainage",
+                        description: "Add perlite/sand to soil and ensure pot has drainage holes.",
+                        icon: "🕳️"
+                    },
+                    {
+                        title: "Reduce Watering",
+                        description: "Let soil dry between waterings and water less frequently.",
+                        icon: "🚱"
+                    },
+                    {
+                        title: "Hydrogen Peroxide",
+                        description: "Use diluted hydrogen peroxide solution to kill root rot pathogens.",
+                        icon: "🧪"
+                    }
+                ],
+                examples: [
+                    "https://placehold.co/400x300?text=Root+Rot+in+Peace+Lily",
+                    "https://placehold.co/400x300?text=Root+Rot+in+Snake+Plant"
+                ]
+            },
+            "Leaf Spot": {
+                description: "Circular brown or black spots with yellow halos appear on leaves.",
+                confidence: "88%",
+                treatments: [
+                    {
+                        title: "Copper Fungicide",
+                        description: "Apply at first sign of disease and repeat as directed.",
+                        icon: "🧴"
+                    },
+                    {
+                        title: "Remove Affected Leaves",
+                        description: "Prune infected leaves and clean pruning tools after.",
+                        icon: "🍂"
+                    },
+                    {
+                        title: "Avoid Wetting Leaves",
+                        description: "Water at base of plant early in the day.",
+                        icon: "💦"
+                    },
+                    {
+                        title: "Improve Airflow",
+                        description: "Space plants and prune to increase circulation.",
+                        icon: "🌪️"
+                    }
+                ],
+                examples: [
+                    "https://placehold.co/400x300?text=Leaf+Spot+on+Hosta",
+                    "https://placehold.co/400x300?text=Leaf+Spot+on+Corn+Plant"
+                ]
+            },
+            "Blossom End Rot": {
+                description: "Dark, sunken spots on fruit bottoms caused by calcium deficiency.",
+                confidence: "75%",
+                treatments: [
+                    {
+                        title: "Calcium Supplement",
+                        description: "Add calcium nitrate or crushed eggshells to soil.",
+                        icon: "🥚"
+                    },
+                    {
+                        title: "Consistent Watering",
+                        description: "Maintain even soil moisture to facilitate calcium uptake.",
+                        icon: "🌊"
+                    },
+                    {
+                        title: "pH Adjustment",
+                        description: "Test soil pH and adjust to 6.2-6.8 for optimal calcium absorption.",
+                        icon: "📊"
+                    },
+                    {
+                        title: "Mulch Soil",
+                        description: "Use organic mulch to help regulate soil moisture.",
+                        icon: "🍂"
+                    }
+                ],
+                examples: [
+                    "https://placehold.co/400x300?text=Blossom+End+Rot+Tomatoes",
+                    "https://placehold.co/400x300?text=Blossom+End+Rot+Squash"
+                ]
+            }
+        };
+        
+        // DOM elements
+        const uploadArea = document.getElementById('upload-area');
+        const uploadBtn = document.getElementById('upload-btn');
+        const plantImageInput = document.getElementById('plant-image');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressPercent = document.getElementById('progress-percent');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const changeImageBtn = document.getElementById('change-image-btn');
+        const resultsSection = document.getElementById('results-section');
+        const uploadSection = document.getElementById('upload-section');
+        const healthyResult = document.getElementById('healthy-result');
+        const diseaseResult = document.getElementById('disease-result');
+        const diseaseName = document.getElementById('disease-name');
+        const confidenceLevel = document.getElementById('confidence-level');
+        const treatmentSection = document.getElementById('treatment-section');
+        const treatmentContent = document.getElementById('treatment-content');
+        const diseaseLibrary = document.getElementById('disease-library');
+        
+        // Event listeners
+        uploadArea.addEventListener('click', () => plantImageInput.click());
+        uploadBtn.addEventListener('click', () => plantImageInput.click());
+        plantImageInput.addEventListener('change', handleImageUpload);
+        changeImageBtn.addEventListener('click', resetToUpload);
+        
+        // Drag and drop functionality
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            uploadArea.classList.add('dragover');
+        }
+        
+        function unhighlight() {
+            uploadArea.classList.remove('dragover');
+        }
+        
+        uploadArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                plantImageInput.files = files;
+                handleImageUpload();
+            }
+        }
+        
+        // Handle image upload
+        function handleImageUpload() {
+            const file = plantImageInput.files[0];
+            
+            if (file) {
+                if (!file.type.match('image.*')) {
+                    alert('Please select an image file');
+                    return;
+                }
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    
+                    // Show upload progress (simulated)
+                    uploadSection.classList.add('hidden');
+                    progressContainer.classList.remove('hidden');
+                    
+                    simulateAnalysis();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Simulate image analysis
+        function simulateAnalysis() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 10) + 1;
+                if (progress > 100) progress = 100;
+                
+                progressBar.style.width = progress + '%';
+                progressPercent.textContent = progress + '%';
+                
+                if (progress === 100) {
+                    clearInterval(interval);
+                    setTimeout(showResults, 800);
+                }
+            }, 200);
+        }
+        
+        // Show results
+        function showResults() {
+            progressContainer.classList.add('hidden');
+            resultsSection.classList.remove('hidden');
+            
+            // Simulate detection (in a real app, this would be from ML model API)
+            const detectedDisease = simulateDiseaseDetection();
+            
+            if (detectedDisease === 'Healthy') {
+                healthyResult.classList.remove('hidden');
+                diseaseResult.classList.add('hidden');
+                treatmentSection.classList.add('hidden');
+            } else {
+                healthyResult.classList.add('hidden');
+                diseaseResult.classList.remove('hidden');
+                
+                diseaseName.textContent = detectedDisease;
+                confidenceLevel.textContent = diseaseDatabase[detectedDisease].confidence + " confidence based on visual patterns";
+                
+                showTreatments(detectedDisease);
+                populateDiseaseLibrary();
+            }
+        }
+        
+        // Simulate disease detection by randomly selecting a disease (or healthy)
+        function simulateDiseaseDetection() {
+            const diseases = Object.keys(diseaseDatabase);
+            diseases.push('Healthy'); // Add healthy option
+            
+            // Weighted random selection (more likely to find a disease)
+            if (Math.random() > 0.3) {
+                return diseases[Math.floor(Math.random() * diseases.length)];
+            } else {
+                return 'Healthy';
+            }
+        }
+        
+        // Display treatment recommendations
+        function showTreatments(disease) {
+            treatmentContent.innerHTML = '';
+            
+            const treatments = diseaseDatabase[disease].treatments;
+            
+            treatments.forEach(treatment => {
+                const treatmentCard = document.createElement('div');
+                treatmentCard.className = 'disease-card bg-white p-6 rounded-lg shadow-sm border border-green-100';
+                treatmentCard.innerHTML = `
+                    <div class="flex items-start mb-3">
+                        <div class="text-2xl mr-3">${treatment.icon}</div>
+                        <h4 class="text-lg font-semibold text-green-800">${treatment.title}</h4>
+                    </div>
+                    <p class="text-gray-600">${treatment.description}</p>
+                `;
+                
+                treatmentContent.appendChild(treatmentCard);
+            });
+            
+            treatmentSection.classList.remove('hidden');
+        }
+        
+        // Populate disease library
+        function populateDiseaseLibrary() {
+            diseaseLibrary.classList.remove('hidden');
+            
+            const libraryContent = document.querySelector('#disease-library > div');
+            libraryContent.innerHTML = '';
+            
+            Object.entries(diseaseDatabase).forEach(([disease, data]) => {
+                const diseaseCard = document.createElement('div');
+                diseaseCard.className = 'disease-card bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition cursor-pointer border border-green-50';
+                diseaseCard.innerHTML = `
+                    <h3 class="text-xl font-bold text-green-800 mb-3">${disease}</h3>
+                    <p class="text-gray-600 mb-4">${data.description}</p>
+                    
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        ${data.examples.map(example => 
+                            `<img src="${example}" alt="Example of ${disease}" class="rounded-md border border-gray-200" />`
+                        ).join('')}
+                    </div>
+                    
+                    <div class="flex items-center text-sm text-green-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Confidence: ${data.confidence}</span>
+                    </div>
+                `;
+                
+                libraryContent.appendChild(diseaseCard);
+            });
+        }
+        
+        // Reset to upload state
+        function resetToUpload() {
+            plantImageInput.value = '';
+            imagePreview.src = '';
+            resultsSection.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+            diseaseLibrary.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
